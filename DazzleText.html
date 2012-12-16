@@ -202,33 +202,17 @@ DazzleText.prototype.draw = function () {
     
 }
 
+//animation action
 DazzleText.prototype.action = function (currentFrame) {
     var frameMode = Math.ceil(currentFrame / this.itemFrame);
 
     for (var i = 0, l = this.TEXTS.length; i < l; i ++){
         var text = this.TEXTS[i];
         text.force = i === frameMode ? true : false; 
-
-        
     
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </script>
 </html>
