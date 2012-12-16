@@ -1,0 +1,234 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Heart Beat Font</title>
+</head>
+<style type="text/css">
+    body {
+       margin: 0;
+       padding: 0;
+    }
+
+    header {
+       height: 40px;
+       line-height: 40px;
+       width: 100%;
+       background: -webkit-linear-gradient(top, #3c3c3c, #000);
+       background: -moz-linear-gradient(top, #3c3c3c, #000);
+       border-top: 1px solid rgba(255, 255, 255, .8);
+       border-bottom: 1px solid rgba(0, 0, 0, .1);
+    }
+
+    article {
+       width: 100%;
+       margin: 0 auto;
+       overflow: hidden;
+       display: -webkit-box;
+       display: -moz-box;
+       display: box;
+       -webkit-box-pack: center;
+       -moz-box-pack: center;
+       box-pack: center;
+       -webkit-box-orient: horizontal;
+       -moz-box-orient: horizontal;
+       box-orient: horizontal;
+    }
+
+    canvas {
+       -webkit-box-flex: 1;
+       -moz-box-flex: 1;
+    }
+</style>
+<body>
+    <header></header>
+    <article>
+       <canvas id="beat"></canvas>	
+    </article>
+    <footer></footer>
+</body>
+<script type="text/javascript">
+/*
+  some text attribute value
+  textAlign -> start end left right center default: start
+  textBaseline -> top hanging middle alphabetic ideographic bottom default: alphabetic
+*/
+
+var canvas,
+    context,
+    text = 'H'; //for test
+
+var HEIGHT = 400,
+    WIDTH = 600,
+    HEIGHT_CENTER = HEIGHT / 2,
+    WIDTH_CENTER = WIDTH / 2;
+
+canvas = document.getElementById('beat');
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+context = canvas.getContext('2d');
+
+context.font = '30px Arail';
+context.textAlign = 'center';
+context.textBaseline = 'middle'
+context.fillStyle = '#303030';
+
+context.fillText(text, WIDTH_CENTER, HEIGHT_CENTER);
+
+
+/*
+var requestAnimationFrame = (function () {
+    return window.webkitRequestAnimationFrame ||
+           window.mozRequestAnimationFrame ||
+           window.oRequestAnimationFrame ||
+           window.msRequestAnimationFrame ||
+           function (do){
+               setInterval(do, 1000 / 60);
+           }
+})();
+*/
+
+/*
+  animation request function
+*/
+
+//TextItem class for each text in TEXTS list
+function TextItem (options)  {
+    var options = options || {};
+
+    this.content = options.content; //text content
+    this.x = options.x || 0; //horizontal position
+    this.y = options.y || 0; //vertical position
+    this.force = false; //animation flag
+    this.size = options.size || 12; // text size
+    this.bold = options.bold || 'false'; // text bold
+    this.fontStyle = options.fontStyle || 'System'; 
+    this.align = options.align || 'start'; //horizontal direction
+    this.baseline = options.baseline || 'alphabetic'; //vertical direction
+    this.color = options.color || '#000';
+    this.angle = optonos.angle || 0;
+}
+
+var _RegText = /\w/g;
+
+//main initialize
+function  DazzleText (options) {
+    this.options = options || {};
+
+    if (!this.options.texts || !this.options.duration || !this.options.rate){
+        throw new Error ('DazzleText Error: can not initialize this text content');
+        return;
+    }
+
+    if (this.options.renderTo.tagName != 'CANVAS'){
+        throw new Error ('DazzleText Error: can not render to this object');
+        return;
+    }
+
+    //copy
+    for (var i in options){
+        if (options.hasOwnProperty(i))
+            this[i] = options[i];
+    }
+
+    this.TEXTS = [];
+    this.initialize();
+}
+
+DazzleText.prototype.initialize = function () {
+    var result;
+
+    while ((result = _RegText.exec(this.options.texts.toString)) != null){
+        var text = new TextItem({
+                
+        });
+
+        this.TEXTS.push(new TextItem({content: result[0]}));
+    }
+
+    //create snap canvas
+    var snapCanvas = document.createElement('canvas');
+    snapCanvas.style.display = 'none';
+    document.body.appendChild(snapCanvas);
+    this.snapContext = snapCanvas.getContext('2d');
+
+    this.itemFrame = (Math.round(this.getTotalFrame() / this.TEXTS.length));
+
+    if (this.startFontSize && this.endFontStart)
+        this.fontGap = this.endFontStart - this.startFontSize;
+}
+
+DazzleText.prototype.getContext = function () {
+    return this.renderTo.getContext('2d');
+}
+
+DazzleText.prototype.getTextWidth = function (text) {
+    return this.snapContext.measureText(text);
+} 
+
+/*
+DazzleText.prototype.getItemDuration = function () {
+    return Math.round(this.duration / this.TEXTS.length);
+}*/
+
+DazzleText.prototype.getTotalFrame = function () {
+    return Math.round(this.duration * this.rate);
+}
+
+DazzleText.prototype.getCurrentSize = function (currentFrame) {
+    var cofficent = this.easing(currentFrame / this.getTotalFrame());
+    return Math.round(this.startFontSize + this.fontGap * cofficent);
+}
+
+DazzleText.prototype.getCurrentPosition = function () {
+
+}
+
+//draw text accroding to options
+DazzleText.prototype.draw = function () {
+    //clear canvas
+    this.context.clearRect(0, 0, this.renderTo.width, this.renderTo.height);
+
+    for (var i = 0, l = this.TEXTS.length; i < l; i ++){
+        var text = this.TEXTS[i];
+        this.context.fillStyle = text.color;
+        this.context.font = text.bold + ' ' + text.size + 'px ' + text.fontStyle;    
+        this.context.align = text.align;
+        this.context.textBaseline = text.baseline;
+        this.context.fillText(text.content, text.x, text.y);
+        this.context.rotate(text.angle);
+        this.restore();
+    }
+    
+}
+
+DazzleText.prototype.action = function (currentFrame) {
+    var frameMode = Math.ceil(currentFrame / this.itemFrame);
+
+    for (var i = 0, l = this.TEXTS.length; i < l; i ++){
+        var text = this.TEXTS[i];
+        text.force = i === frameMode ? true : false; 
+
+        
+    
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+</html>
