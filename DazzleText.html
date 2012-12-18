@@ -76,6 +76,8 @@ context.fillStyle = '#303030';
 context.fillText(text, WIDTH_CENTER, HEIGHT_CENTER);
 
 
+
+
 /*
 var requestAnimationFrame = (function () {
     return window.webkitRequestAnimationFrame ||
@@ -106,7 +108,7 @@ function TextItem (options)  {
     this.align = options.align || 'start'; //horizontal direction
     this.baseline = options.baseline || 'alphabetic'; //vertical direction
     this.color = options.color || '#000';
-    this.angle = optonos.angle || 0;
+    this.angle = options.angle || 0;
 }
 
 var _RegText = /\w/g;
@@ -115,7 +117,7 @@ var _RegText = /\w/g;
 function  DazzleText (options) {
     this.options = options || {};
 
-    if (!this.options.texts || !this.options.duration || !this.options.rate){
+    if (!this.options.texts || !this.options.duration){
         throw new Error ('DazzleText Error: can not initialize this text content');
         return;
     }
@@ -132,19 +134,15 @@ function  DazzleText (options) {
     }
 
     this.TEXTS = [];
+    this.rate = this.rate || 13;
     this.initialize();
 }
 
 DazzleText.prototype.initialize = function () {
     var result;
 
-    while ((result = _RegText.exec(this.options.texts.toString)) != null){
-        var text = new TextItem({
-                
-        });
-
+    while ((result = _RegText.exec(this.texts)) != null)
         this.TEXTS.push(new TextItem({content: result[0]}));
-    }
 
     //create snap canvas
     var snapCanvas = document.createElement('canvas');
@@ -152,17 +150,24 @@ DazzleText.prototype.initialize = function () {
     document.body.appendChild(snapCanvas);
     this.snapContext = snapCanvas.getContext('2d');
 
+    console.log(this.measure(this.texts));
     this.itemFrame = (Math.round(this.getTotalFrame() / this.TEXTS.length));
+    this.itemWidth = (Math.round(this.measure(this.texts).width / this.TEXTS.length));
+    console.log(this.TEXTS.length);
+
+    console.log(this.itemWidth);
 
     if (this.startFontSize && this.endFontStart)
         this.fontGap = this.endFontStart - this.startFontSize;
+
 }
 
 DazzleText.prototype.getContext = function () {
     return this.renderTo.getContext('2d');
 }
 
-DazzleText.prototype.getTextWidth = function (text) {
+DazzleText.prototype.measure = function (text) {
+    this.snapContext.font = this.startFontSize + 'px ' + ' Arial';
     return this.snapContext.measureText(text);
 } 
 
@@ -172,11 +177,11 @@ DazzleText.prototype.getItemDuration = function () {
 }*/
 
 DazzleText.prototype.getTotalFrame = function () {
-    return Math.round(this.duration * this.rate);
+    return Math.round(this.duration * this.rate / 1000);
 }
 
 DazzleText.prototype.getCurrentSize = function (currentFrame) {
-    var cofficent = this.easing(currentFrame / this.getTotalFrame());
+    var cofficent = currentFrame / this.getTotalFrame();
     return Math.round(this.startFontSize + this.fontGap * cofficent);
 }
 
@@ -184,35 +189,61 @@ DazzleText.prototype.getCurrentPosition = function () {
 
 }
 
-//draw text accroding to options
-DazzleText.prototype.draw = function () {
-    //clear canvas
-    this.context.clearRect(0, 0, this.renderTo.width, this.renderTo.height);
-
-    for (var i = 0, l = this.TEXTS.length; i < l; i ++){
-        var text = this.TEXTS[i];
-        this.context.fillStyle = text.color;
-        this.context.font = text.bold + ' ' + text.size + 'px ' + text.fontStyle;    
-        this.context.align = text.align;
-        this.context.textBaseline = text.baseline;
-        this.context.fillText(text.content, text.x, text.y);
-        this.context.rotate(text.angle);
-        this.restore();
-    }
-    
-}
-
 //animation action
 DazzleText.prototype.action = function (currentFrame) {
-    var frameMode = Math.ceil(currentFrame / this.itemFrame);
+    var frameMode = Math.ceil(currentFrame / this.itemFrame),
+        context = this.getContext();
+
+    context.clearRect(0, 0, this.renderTo.width, this.renderTo.height);
 
     for (var i = 0, l = this.TEXTS.length; i < l; i ++){
         var text = this.TEXTS[i];
-        text.force = i === frameMode ? true : false; 
-    
+        text.force = (i === frameMode); 
+
+
+        if (text.force){
+            text.fontsize = this.getCurrentSize(currentFrame);
+        }else {
+            text.fontsize = this.startFrontSize;
+        }
+
+        text.x = this.itemWidth * i;
+        text.y = this.renderTo.height / 2;
+
+        console.log(text.x);
+        //draw
+        context.fillStyle = text.color;
+        context.font = text.bold + ' ' + text.size + 'px ' + text.fontStyle;    
+        context.align = text.align;
+        context.textBaseline = text.baseline;
+        context.fillText(text.content, text.x, text.y);
+        context.rotate(text.angle);
+        context.restore();
     }
 
 }
+
+DazzleText.prototype.engine = function () {
+    var self = this,
+        currentFrame = 0;
+
+    var _dazzleT = setInterval(function () {
+         self.action(currentFrame ++);
+         if (currentFrame > self.getTotalFrame())
+             currentFrame = 0;
+    }, 1000 / this.rate);
+}
+
+var dazzle = new DazzleText({
+    texts: "Mugeda",
+    renderTo: canvas,
+    duration: 3000,
+    startFontSize: 12,
+    endFontSize: 30
+});
+
+//dazzle.engine();
+
 
 </script>
 </html>
