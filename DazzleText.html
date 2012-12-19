@@ -111,7 +111,7 @@ function TextItem (options)  {
     this.angle = options.angle || 0;
 }
 
-var _RegText = /\w/g;
+var _RegText = /(\w|[\u4e00-\u9fa5])/g;
 
 //main initialize
 function  DazzleText (options) {
@@ -134,7 +134,8 @@ function  DazzleText (options) {
     }
 
     this.TEXTS = [];
-    this.rate = this.rate || 13;
+    this.rate = this.rate || 60;
+	this.padding = 1;
     this.initialize();
 }
 
@@ -150,15 +151,11 @@ DazzleText.prototype.initialize = function () {
     document.body.appendChild(snapCanvas);
     this.snapContext = snapCanvas.getContext('2d');
 
-    console.log(this.measure(this.texts));
     this.itemFrame = (Math.round(this.getTotalFrame() / this.TEXTS.length));
-    this.itemWidth = (Math.round(this.measure(this.texts).width / this.TEXTS.length));
-    console.log(this.TEXTS.length);
+    this.itemWidth = (Math.round(this.measure(this.texts).width / this.TEXTS.length)) + 2 * this.padding;
 
-    console.log(this.itemWidth);
-
-    if (this.startFontSize && this.endFontStart)
-        this.fontGap = this.endFontStart - this.startFontSize;
+    if (this.startFontSize && this.endFontSize)
+        this.fontGap = this.endFontSize - this.startFontSize;
 
 }
 
@@ -180,8 +177,8 @@ DazzleText.prototype.getTotalFrame = function () {
     return Math.round(this.duration * this.rate / 1000);
 }
 
-DazzleText.prototype.getCurrentSize = function (currentFrame) {
-    var cofficent = currentFrame / this.getTotalFrame();
+DazzleText.prototype.getCurrentSize = function (frame) {
+    var cofficent = frame / this.itemFrame;
     return Math.round(this.startFontSize + this.fontGap * cofficent);
 }
 
@@ -191,7 +188,7 @@ DazzleText.prototype.getCurrentPosition = function () {
 
 //animation action
 DazzleText.prototype.action = function (currentFrame) {
-    var frameMode = Math.ceil(currentFrame / this.itemFrame),
+    var frameMode = Math.floor(currentFrame / this.itemFrame),
         context = this.getContext();
 
     context.clearRect(0, 0, this.renderTo.width, this.renderTo.height);
@@ -200,21 +197,19 @@ DazzleText.prototype.action = function (currentFrame) {
         var text = this.TEXTS[i];
         text.force = (i === frameMode); 
 
-
         if (text.force){
-            text.fontsize = this.getCurrentSize(currentFrame);
-        }else {
-            text.fontsize = this.startFrontSize;
-        }
-
+			var frame = currentFrame > this.itemFrame ? currentFrame % this.itemFrame : currentFrame;
+            text.size = this.getCurrentSize(frame);
+        }else 
+            text.size = this.startFontSize;
+        
         text.x = this.itemWidth * i;
         text.y = this.renderTo.height / 2;
 
-        console.log(text.x);
         //draw
         context.fillStyle = text.color;
-        context.font = text.bold + ' ' + text.size + 'px ' + text.fontStyle;    
-        context.align = text.align;
+        context.font = text.size + 'px ' + text.fontStyle;    
+        context.textAlign = text.align;
         context.textBaseline = text.baseline;
         context.fillText(text.content, text.x, text.y);
         context.rotate(text.angle);
@@ -230,19 +225,20 @@ DazzleText.prototype.engine = function () {
     var _dazzleT = setInterval(function () {
          self.action(currentFrame ++);
          if (currentFrame > self.getTotalFrame())
-             currentFrame = 0;
+             //currentFrame = 0;
+			 clearInterval(_dazzleT);
     }, 1000 / this.rate);
 }
 
 var dazzle = new DazzleText({
-    texts: "Mugeda",
+    texts: "木疙瘩",
     renderTo: canvas,
-    duration: 3000,
+    duration: 1500,
     startFontSize: 12,
     endFontSize: 30
 });
 
-//dazzle.engine();
+dazzle.engine();
 
 
 </script>
