@@ -36,14 +36,14 @@
     }
 
     canvas {
-       -webkit-box-flex: 1;
-       -moz-box-flex: 1;
+       width: 300px;
+       height: 100px;
     }
 </style>
 <body>
     <header></header>
     <article>
-       <canvas id="beat"></canvas>	
+        <canvas id="beat" width=300 height=100></canvas>	
     </article>
     <footer></footer>
 </body>
@@ -53,30 +53,6 @@
   textAlign -> start end left right center default: start
   textBaseline -> top hanging middle alphabetic ideographic bottom default: alphabetic
 */
-
-var canvas,
-    context,
-    text = 'H'; //for test
-
-var HEIGHT = 400,
-    WIDTH = 600,
-    HEIGHT_CENTER = HEIGHT / 2,
-    WIDTH_CENTER = WIDTH / 2;
-
-canvas = document.getElementById('beat');
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
-context = canvas.getContext('2d');
-
-context.font = '30px Arail';
-context.textAlign = 'center';
-context.textBaseline = 'middle'
-context.fillStyle = '#303030';
-
-context.fillText(text, WIDTH_CENTER, HEIGHT_CENTER);
-
-
-
 
 /*
 var requestAnimationFrame = (function () {
@@ -101,11 +77,12 @@ function TextItem (options)  {
     this.content = options.content; //text content
     this.x = options.x || 0; //horizontal position
     this.y = options.y || 0; //vertical position
+    this.osize = options.osize || 0; //origin width size
     this.force = false; //animation flag
     this.size = options.size || 12; // text size
     this.bold = options.bold || 'false'; // text bold
     this.fontStyle = options.fontStyle || 'System'; 
-    this.align = options.align || 'start'; //horizontal direction
+    this.align = options.align || 'center'; //horizontal direction
     this.baseline = options.baseline || 'alphabetic'; //vertical direction
     this.color = options.color || '#000';
     this.angle = options.angle || 0;
@@ -140,23 +117,43 @@ function  DazzleText (options) {
 }
 
 DazzleText.prototype.initialize = function () {
-    var result;
+    this.setSnapContext();
 
-    while ((result = _RegText.exec(this.texts)) != null)
-        this.TEXTS.push(new TextItem({content: result[0]}));
+    var result, 
+        textsWidth = 0;
 
+    while ((result = _RegText.exec(this.texts)) != null){
+        var width = this.measure(result[0]).width;
+
+        var textItem = new TextItem({
+            content: result[0],
+            bold: this.bold,
+            x: textsWidth + width / 2,
+            y: this.renderTo.height / 2
+        });
+
+        textsWidth += width + this.gap;
+
+        this.TEXTS.push(textItem);
+    }
+
+    this.itemFrame = (Math.round(this.getTotalFrame() / this.TEXTS.length));
+
+    if (this.startFontSize && this.endFontSize)
+        this.dSize = this.endFontSize - this.startFontSize;
+
+}
+
+DazzleText.prototype.setSnapContext = function (){
     //create snap canvas
     var snapCanvas = document.createElement('canvas');
     snapCanvas.style.display = 'none';
     document.body.appendChild(snapCanvas);
     this.snapContext = snapCanvas.getContext('2d');
+}
 
-    this.itemFrame = (Math.round(this.getTotalFrame() / this.TEXTS.length));
-    this.itemWidth = (Math.round(this.measure(this.texts).width / this.TEXTS.length)) + 2 * this.padding;
-
-    if (this.startFontSize && this.endFontSize)
-        this.fontGap = this.endFontSize - this.startFontSize;
-
+DazzleText.prototype.getSnapContext = function (){
+    return this.snapContext;
 }
 
 DazzleText.prototype.getContext = function () {
@@ -164,8 +161,8 @@ DazzleText.prototype.getContext = function () {
 }
 
 DazzleText.prototype.measure = function (text) {
-    this.snapContext.font = this.startFontSize + 'px ' + ' Arial';
-    return this.snapContext.measureText(text);
+    this.getSnapContext().font = this.bold + ' ' + this.startFontSize + 'px ' + ' Arial';
+    return this.getSnapContext().measureText(text);
 } 
 
 /*
@@ -179,7 +176,7 @@ DazzleText.prototype.getTotalFrame = function () {
 
 DazzleText.prototype.getCurrentSize = function (frame) {
     var cofficent = frame / this.itemFrame;
-    return Math.round(this.startFontSize + this.fontGap * cofficent);
+    return Math.round(this.startFontSize + this.dSize * cofficent);
 }
 
 DazzleText.prototype.getCurrentPosition = function () {
@@ -203,12 +200,9 @@ DazzleText.prototype.action = function (currentFrame) {
         }else 
             text.size = this.startFontSize;
         
-        text.x = this.itemWidth * i;
-        text.y = this.renderTo.height / 2;
-
         //draw
         context.fillStyle = text.color;
-        context.font = text.size + 'px ' + text.fontStyle;    
+        context.font = text.bold + ' ' + text.size + 'px ' + text.fontStyle;    
         context.textAlign = text.align;
         context.textBaseline = text.baseline;
         context.fillText(text.content, text.x, text.y);
@@ -225,21 +219,22 @@ DazzleText.prototype.engine = function () {
     var _dazzleT = setInterval(function () {
          self.action(currentFrame ++);
          if (currentFrame > self.getTotalFrame())
-             //currentFrame = 0;
-			 clearInterval(_dazzleT);
+             currentFrame = 0;
+			 //clearInterval(_dazzleT);
     }, 1000 / this.rate);
 }
 
 var dazzle = new DazzleText({
-    texts: "木疙瘩",
-    renderTo: canvas,
-    duration: 1500,
-    startFontSize: 12,
-    endFontSize: 30
+    texts: "MUGEDA",
+    renderTo: document.getElementById("beat"),
+    bold: 'bold',
+    duration: 2000,
+    gap: 5,
+    startFontSize: 30,
+    endFontSize: 60
 });
 
 dazzle.engine();
-
 
 </script>
 </html>
